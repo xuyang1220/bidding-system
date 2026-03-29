@@ -576,9 +576,10 @@ if __name__ == "__main__":
         # bid_cpm_min: float = 0.01
         # bid_cpm_max: float = 50.0
     
-    print(feed_batch.seg_id.shape)
-    print(feed_batch.pconv_hat.shape)
-    print(feed_batch.market_price_cpm.shape)
+    # print(feed_batch.seg_id.shape)
+    # print(feed_batch.pconv_hat.shape)
+    # print(feed_batch.market_price_cpm.shape)
+    video_pconv_hat = video_batch.pconv_hat
     channel_data = {
         "feed": {
             "seg_id": feed_batch.seg_id,
@@ -588,7 +589,7 @@ if __name__ == "__main__":
         },
         "video": {
             "seg_id": video_batch.seg_id,
-            "pconv_hat": video_batch.pconv_hat,
+            "pconv_hat": video_pconv_hat,
             "market_price_cpm": video_batch.market_price_cpm,
             "value_per_conv": video_batch.value_per_conv,
         },
@@ -602,7 +603,7 @@ if __name__ == "__main__":
 
     mu_by_seg_map = {
         "feed": feed_batch.mu_by_seg,
-        "video": video_batch.mu_by_seg,
+        "video": video_batch.mu_by_seg + 2,
         "email": email_batch.mu_by_seg,
     }
 
@@ -613,9 +614,9 @@ if __name__ == "__main__":
     }
 
     imps_per_step_map = {
-        "feed": 3000,
-        "video": 2000,
-        "email": 1000,
+        "feed": 30000,
+        "video": 20000,
+        "email": 10000,
     }
 
     hist = run_multichannel_loop(
@@ -623,8 +624,8 @@ if __name__ == "__main__":
         mu_by_seg_map=mu_by_seg_map,
         sigma_by_seg_map=sigma_by_seg_map,
 
-        steps=96,
-        budget_total_dollars=1000.0,
+        steps=96*10,
+        budget_total_dollars=10000.0,
         imps_per_step_map=imps_per_step_map,
 
         use_value_weight=True,
@@ -641,3 +642,19 @@ if __name__ == "__main__":
     for ch in ["feed", "video", "email"]:
         spends = [step["spend_real"] for step in hist["per_channel"][ch]]
         print(ch, "total spend:", sum(spends))
+
+    import matplotlib.pyplot as plt
+
+    plt.plot(hist["spend_real"], label="real")
+    plt.plot(hist["spend_exp"], label="expected")
+    plt.legend()
+    plt.title("Total Spend")
+    plt.show()
+
+    for ch in ["feed", "video", "email"]:
+        spends = [step["spend_real"] for step in hist["per_channel"][ch]]
+        plt.plot(spends, label=ch)
+
+    plt.legend()
+    plt.title("Per-channel spend")
+    plt.show()
